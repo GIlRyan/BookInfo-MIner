@@ -1,0 +1,55 @@
+import requests
+from lxml import html
+import json
+
+def scrape_books(base_url):
+    books_data = []
+    base_url = base_url.rsplit('/', 1)[0]  # remove "index.html" from the base_url
+
+    # Loop through all pages
+    for page_num in range(1, 51):  # Assuming there are 50 pages
+        # Construct the URL for the current page
+        if page_num == 1:
+            page_url = f"{base_url}/index.html"
+        else:
+            page_url = f"{base_url}/page-{page_num}.html"
+        
+        # Send a request to the webpage
+        response = requests.get(page_url)
+        
+        if response.status_code != 200:
+            print(f"Failed to retrieve page {page_num}")
+            continue
+
+        # Parse the HTML content of the page
+        tree = html.fromstring(response.content)
+
+        # Use XPath to extract the required information
+        books = tree.xpath('//article[@class="product_pod"]')
+
+        # Iterate through each book and extract details
+        for book in books:
+            title = book.xpath('.//h3/a/@title')[0]
+            price = book.xpath('.//div[@class="product_price"]/p[@class="price_color"]/text()')[0]
+            price = price.replace('£', '')
+            rating = book.xpath('.//p[contains(@class, "star-rating")]/@class')[0].split()[-1]
+            availability = book.xpath('.//div[@class="product_price"]/p[@class="instock availability"]/text()')
+            availability = availability[1].strip() if availability else 'Not Available'
+
+            book_info = {
+                'title': title,
+                'price': price,
+                'rating': rating,
+                'availability': availability
+            }
+            books_data.append(book_info)
+
+    # Convert the list of dictionaries into a JSON string and save to file
+    with open('books_data.json', 'w', encoding='utf-8') as f:
+        json.dump(books_data, f, ensure_ascii=False, indent=4)
+
+    return books_data
+
+# Base URL for the category to scrape
+base_url = "http://books.toscrape.com/catalogue/category/books_1/index.html"
+scrape_books(base_url)
