@@ -1,1 +1,19 @@
+import pymongo
+from pymongo import MongoClient
+import json
 
+# Connect to MongoDB Atlas
+client = MongoClient('mongodb+srv://ryangilberttt:8KRSMLOStJUpR4Lt@bookmining.vtlbiin.mongodb.net/?retryWrites=true&w=majority&appName=BookMining')
+db = client['booksDB']  # Database name
+collection = db['books']  # Collection name
+
+# Load data from JSON file
+with open('books_data.json', 'r', encoding='utf-8') as f:
+    books_data = json.load(f)
+
+# Insert data into MongoDB collection
+collection.insert_many(books_data)
+
+# Query MongoDB for books with price less than £20
+query = {"price": {"$lt": "20.00"}}
+books_under_20 = list(collection.find(query))
